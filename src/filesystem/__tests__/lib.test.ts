@@ -912,27 +912,40 @@ describe("Lib Functions", () => {
       });
 
       it("handles files with content and returns last lines", async () => {
-        mockFs.stat.mockResolvedValue({ size: 50 } as Stats);
+        const content = Buffer.from("line1\nline2\nline3\nline4\nline5\n");
+        const mockFileHandle = createMockFileHandle(content);
 
-        const mockFileHandle = {
-          read: vi.fn(),
-          close: vi.fn(),
-        };
-
-        // Simulate reading file content in chunks
-        mockFileHandle.read
-          .mockResolvedValueOnce({
-            bytesRead: 20,
-            buffer: Buffer.from("line3\nline4\nline5\n"),
-          })
-          .mockResolvedValueOnce({ bytesRead: 0 });
-        mockFileHandle.close.mockResolvedValue(undefined);
-
+        mockFs.stat.mockResolvedValue({ size: content.length } as Stats);
         mockFs.open.mockResolvedValue(asFileHandle(mockFileHandle));
 
-        await tailFile("/test/file.txt", 2);
+        const result = await tailFile("/test/file.txt", 2);
 
+        expect(result).toBe("line4\nline5");
         expect(mockFileHandle.close).toHaveBeenCalled();
+      });
+
+      it("handles files ending in newline with tail 1", async () => {
+        const content = Buffer.from("first\nsecond\n");
+        const mockFileHandle = createMockFileHandle(content);
+
+        mockFs.stat.mockResolvedValue({ size: content.length } as Stats);
+        mockFs.open.mockResolvedValue(asFileHandle(mockFileHandle));
+
+        const result = await tailFile("/test/file.txt", 1);
+
+        expect(result).toBe("second");
+      });
+
+      it("handles files without trailing newline", async () => {
+        const content = Buffer.from("first\nsecond");
+        const mockFileHandle = createMockFileHandle(content);
+
+        mockFs.stat.mockResolvedValue({ size: content.length } as Stats);
+        mockFs.open.mockResolvedValue(asFileHandle(mockFileHandle));
+
+        const result = await tailFile("/test/file.txt", 2);
+
+        expect(result).toBe("first\nsecond");
       });
 
       it("preserves UTF-8 characters split across chunk boundaries", async () => {

@@ -357,12 +357,18 @@ describe("read_text_file and read_file", () => {
     expect(textOf(result)).toBe("one\ntwo");
   });
 
-  it("returns the last N lines with tail, counting the trailing newline as a line", async () => {
+  it("returns the last N lines with tail", async () => {
     const result = await call(client, "read_text_file", {
       path: file,
       tail: 2,
     });
-    expect(textOf(result)).toBe("four\n");
+    expect(textOf(result)).toBe("three\nfour");
+
+    const tailOne = await call(client, "read_text_file", {
+      path: file,
+      tail: 1,
+    });
+    expect(textOf(tailOne)).toBe("four");
   });
 
   it("treats head: 0 as absent and returns the whole file", async () => {
